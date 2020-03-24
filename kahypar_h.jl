@@ -22,7 +22,7 @@ mutable struct context_parameters
     p_max_louvain_pass_iterations::UInt32
     p_min_eps_improvement::Float64
     p_louvain_edge_weight::Symbol
-    # main -> preprocessing -> community detection
+    # main -> coarsening
     c_type::Symbol
     c_s::Float64
     c_t::Int
@@ -125,7 +125,8 @@ context_parameters() =
                        true,                    # r_flow_ignore_small_hyperedge_cut
                        true                     # r_flow_use_improvement_history
                        )
-                       
+
+    
 """
 - `imbalance::Float64` - target imbalance tolerance in the partition
 - `objective::Symbol` - one of :cut or :km1 for edge cut or k - 1 objectives
@@ -150,12 +151,9 @@ function kahypar_partition(A::SparseMatrixCSC{Int64,Int64},
     kahypar_set_context_partition_objective(context, string(objective))
     kahypar_set_context_partition_seed(context, seed)
 
-    
+    # Set the remainder of parameters
+    set_additional_parameters(context, additional_parameters)
+
     # Create the Hypergraph representation
-    
-                           
-    #num_vertices, num_hyperedges, imbalance, num_blocks,
-    #                       vertex_weights, hyperedge_weights, hyperedge_indices,
-    #                       hyperedges,objective, context, partition)
 
 end
