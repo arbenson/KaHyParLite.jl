@@ -385,8 +385,7 @@ function kahypar_partition(A::SparseMatrixCSC{Int64,Int64},
                            seed::Int64=-1,
                            vertex_weights::Vector{Int64}=ones(Int64, size(A, 1)),
                            hyperedge_weights::Vector{Int64}=ones(Int64, size(A, 2)),
-                           additional_parameters::context_parameters=context_paramaters()
-                           )
+                           additional_parameters::context_parameters=context_parameters())
     # Create the context
     context = kahypar_context_new()
     # TODO(arbenson): expose recursive bisectioning functionality
@@ -430,6 +429,5 @@ function kahypar_partition(A::SparseMatrixCSC{Int64,Int64},
           num_vertices, num_hyperedges, ϵ, k, vertex_weights, hyperedge_weights,
           hyperedge_indices, hyperedges, objective, context, partition)
 
-    
     return convert(Vector{Int64}, partition) .+ 1
 end
