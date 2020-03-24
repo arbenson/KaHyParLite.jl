@@ -1,5 +1,3 @@
-using SparseArrays
-
 mutable struct kahypar_context_t end
 
 kahypar_context_new() =
@@ -298,7 +296,6 @@ context_parameters() =
                        )
 
 
-
 function set_additional_parameters(context_ref::Ref{kahypar_context_t}, params::context_parameters)
     kahypar_set_context_partition_hyperedge_size_threshold(context_ref, params.cmaxnet)
     kahypar_set_context_partition_global_search_iterations(context_ref, params.vcycles)
@@ -362,34 +359,77 @@ function set_additional_parameters(context_ref::Ref{kahypar_context_t}, params::
     kahypar_set_context_local_search_flow_use_improvement_history(context_ref, r_flow_use_improvement_history)
 end
 
-
-    
 """
-- `imbalance::Float64` - target imbalance tolerance in the partition
-- `objective::Symbol` - one of :cut or :km1 for edge cut or k - 1 objectives
+kahypar_partition
+------------------------
+
+Compute a partition of a hypergraph.
+
+Input parameters:
+- `A::SparseMatrixCSC{Int64,Int64}` - node x edge incidence matrix
+- `k::Int64` - number of parts
+- `ϵ::Float64` - target imbalance tolerance in the partition
+- `penalty::Symbol` - one of :cut or :km1 for edge cut or k - 1 objectives (default: :cut)
 - `seed::Int64` - random seed (default: -1)
+- `vertex_weights::Vector{Int64}` - weights associated with vertices (default: unit weight)
+- `hyperedge_weights::Vector{Int64}` - weights associated with hyperedges (default: unit weight)
+- `additional_parameters::context_parameters` - data structure for a whole bunch of other possible KaHyPar parameters
+
+Returns partition::Vector{Int64}, which is the node assignments (each node is assigned to a part in 1, ..., k)
 """
 # Initialization from https://github.com/SebastianSchlag/kahypar/blob/master/config/cut_kahypar_mf_jea19.ini
 function kahypar_partition(A::SparseMatrixCSC{Int64,Int64},
-                           k::Int64;
-                           imbalance::Float64=0.03,
-                           objective::Symbol=:cut,
+                           k::Int64,
+                           ϵ::Float64,
+                           penalty::Symbol=:cut,
                            seed::Int64=-1,
-                           vertex_weights::Vector{Int64}=Vector{Int64}(),
-                           hyperedge_weights::Vector{Int32}=Vector{Int64}(),
+                           vertex_weights::Vector{Int64}=ones(Int64, size(A, 1)),
+                           hyperedge_weights::Vector{Int64}=ones(Int64, size(A, 2)),
                            additional_parameters::context_parameters=context_paramaters()
                            )
-
     # Create the context
     context = kahypar_context_new()
     # TODO(arbenson): expose recursive bisectioning functionality
     mode=:direct,
-    kahypar_set_context_partition_mode(context, string(mode))
-    kahypar_set_context_partition_objective(context, string(objective))
+    kahypar_set_context_partition_mode(context, String(mode))
+    kahypar_set_context_partition_objective(context, String(penalty))
     kahypar_set_context_partition_seed(context, seed)
-
-    # Set the remainder of parameters
     set_additional_parameters(context, additional_parameters)
 
+    # Basic info
+    num_vertices = size(A, 1)
+    num_hyperedges = size(A, 2)
+
     # Create the Hypergraph representation
+    hyperedge_indices = Vector{Csize_t}([0])
+    hyperedges = Vector{Cuint}()
+    for j in 1:num_hyperedges
+        hyperedge = findall(A[:, j])
+        append!(hyperedges, hyperedge)
+        push!(edge_indices, length(hyperedge))
+    end
+
+    # Other input parameters
+    objective = Cint(0)
+    partition = Vector{Cuint}(undef, num_vertices)
+
+    ccall((:kahypar_partition, libkahypar),
+          Cvoid,
+          (Cuint,                   # num_vertices
+           Cuint,                   # num_hyperedges
+           Cdouble,                 # epsilon
+           Cuint,                   # num_blocks
+           Ptr{Cint},               # vertex_weights
+           Ptr{Cint},               # hyperedge_weights
+           Ptr{Csize_t},            # hyperedge_indices
+           Ptr{Cuint},              # hyperedges
+           Ref{Cint},               # objective
+           Ref{kahypar_context_t},  # context
+           Ref{Cuint}               # parition
+           ),
+          num_vertices, num_hyperedges, ϵ, k, vertex_weights, hyperedge_weights,
+          hyperedge_indices, hyperedges, objective, context, partition)
+
+    
+    return convert(Vector{Int64}, partition) .+ 1
 end
