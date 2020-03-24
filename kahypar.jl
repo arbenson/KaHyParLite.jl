@@ -1,7 +1,4 @@
 using KaHyPar_jll: libkahypar
-
-
-
 function set_additional_parameters(context, params::context_parameters)
     kahypar_set_context_partition_hyperedge_size_threshold(context, params.cmaxnet)
     kahypar_set_context_partition_global_search_iterations(context, params.vcycles)
