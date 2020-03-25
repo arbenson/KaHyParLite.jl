@@ -299,6 +299,7 @@ ContextParameters() =
                       true                     # r_flow_use_improvement_history
                       )
 
+# Set all of the parameters in the ContextParameters data structure for the context
 function set_additional_parameters(context_ref::Ref{kahypar_context_t}, params::ContextParameters)
     kahypar_set_context_partition_hyperedge_size_threshold(context_ref, params.cmaxnet)
     kahypar_set_context_partition_global_search_iterations(context_ref, params.vcycles)
@@ -376,7 +377,7 @@ Input parameters:
 - `seed::Int64` - random seed (default: -1)
 - `vertex_weights::Vector{Int64}` - weights associated with vertices (default: unit weight)
 - `hyperedge_weights::Vector{Int64}` - weights associated with hyperedges (default: unit weight)
-- `additional_parameters::context_parameters` - data structure for a whole bunch of other possible KaHyPar parameters
+- `extra_params::ContextParameters` - data structure for a whole bunch of other possible KaHyPar parameters
 
 Returns partition::Vector{Int64}, which is the node assignments (each node is assigned to a part in 1, ..., k)
 """
@@ -387,29 +388,28 @@ function kahypar_partition(A::SparseMatrixCSC{Int64,Int64},
                            penalty::Symbol=:cut,
                            seed::Int64=-1,
                            vertex_weights::Vector{Int64}=ones(Int64, size(A, 1)),
-                           hyperedge_weights::Vector{Int64}=ones(Int64, size(A, 2))
+                           hyperedge_weights::Vector{Int64}=ones(Int64, size(A, 2)),
+                           extra_params::ContextParameters=ContextParameters()
                            )
-    # Create the context
+    # Set up the context
     context = kahypar_context_new()
     # TODO(arbenson): expose recursive bisectioning functionality
     mode = :direct
     kahypar_set_context_partition_mode(context, String(mode))
     kahypar_set_context_partition_objective(context, String(penalty))
     kahypar_set_context_partition_seed(context, seed)
-
-    additional_parameters = ContextParameters()
-    set_additional_parameters(context, additional_parameters)
+    set_additional_parameters(context, extra_params)
 
     # Basic info
     num_vertices = size(A, 1)
     num_hyperedges = size(A, 2)
 
-    # Create the Hypergraph representation
+    # Create the hypergraph representation for kahypar
     hyperedge_indices = Vector{Csize_t}([0])
     hyperedges = Vector{Cuint}()
     for j in 1:num_hyperedges
         hyperedge = findnz(A[:, j])[1]
-        append!(hyperedges, hyperedge .- 1)
+        append!(hyperedges, hyperedge .- 1)  # 1-index --> 0-index
         push!(hyperedge_indices, hyperedge_indices[end] + length(hyperedge))
     end
     pop!(hyperedge_indices)
@@ -446,5 +446,5 @@ function kahypar_partition(A::SparseMatrixCSC{Int64,Int64},
           context,
           partition)
 
-    return convert(Vector{Int64}, partition) .+ 1
+    return convert(Vector{Int64}, partition) .+ 1  # 0-index --> 1-index
 end
