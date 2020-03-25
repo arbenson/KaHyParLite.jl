@@ -1,4 +1,8 @@
+using SparseArrays
+
 mutable struct kahypar_context_t end
+
+const libkahypar = "/usr/local/lib/libkahypar.dylib"
 
 kahypar_context_new() =
     ccall((:kahypar_context_new, libkahypar), Ptr{kahypar_context_t}, ())
@@ -78,7 +82,7 @@ kahypar_set_context_coarsening_RP_acceptance_policy(context_ref::Ref{kahypar_con
     ccall((:kahypar_set_context_coarsening_RP_acceptance_policy, libkahypar), Cvoid, (Ref{kahypar_context_t}, Cstring), context_ref, crit)
 
 kahypar_set_context_coarsening_RP_fixed_vertex_acceptance_policy(context_ref::Ref{kahypar_context_t}, crit::String) =
-    ccall((:kahypar_set_context_coarsening_RP_fixed_vertex_acceptance_policy, libkahypar), Cvoid, (Ref{kahypar_context_t}, Cstring), context_ref, crt)
+    ccall((:kahypar_set_context_coarsening_RP_fixed_vertex_acceptance_policy, libkahypar), Cvoid, (Ref{kahypar_context_t}, Cstring), context_ref, crit)
 
 # Context.LocalSearchParameters
 kahypar_set_context_local_search_algorithm(context_ref::Ref{kahypar_context_t}, rtype::String) =
@@ -173,9 +177,9 @@ kahypar_set_context_initial_partitioning_local_search_fm_stopping_rule(context_r
     ccall((:kahypar_set_context_initial_partitioning_local_search_fm_stopping_rule, libkahypar), Cvoid, (Ref{kahypar_context_t}, Cstring), context_ref, stopfm)
 
 # See https://github.com/SebastianSchlag/kahypar/blob/master/kahypar/application/command_line_options.h for descriptions
-mutable struct context_parameters
+mutable struct ContextParameters
     # general
-    cmaxnet::Int
+    cmaxnet::UInt32
     vcycles::UInt32
     use_sparsifier::Bool
     # main -> preprocessing -> min hash sparsifier
@@ -240,63 +244,62 @@ mutable struct context_parameters
 end
 
 # defaults from https://github.com/SebastianSchlag/kahypar/blob/master/config/cut_kahypar_mf_jea19.ini
-context_parameters() =
-    context_parameters(1000,                    # cmaxnet
-                       0,                       # vcycles
-                       true,                    # use_sparsifier
-                       28,                      # p_sparsifier_min_median_he_size
-                       1200,                    # p_sparsifier_max_hyperedge_size
-                       10,                      # p_sparsifier_max_cluster_size
-                       2,                       # p_sparsifier_min_cluster_size
-                       5,                       # p_sparsifier_num_hash_func
-                       100,                     # p_sparsifier_combined_num_hash_func
-                       true,                    # p_detect_communities
-                       false,                   # p_reuse_communities
-                       100,                     # p_max_louvain_pass_iterations
-                       0.001,                   # p_min_eps_improvement
-                       :hybrid,                 # p_louvain_edge_weight
-                       :ml_style,               # c_type
-                       1.0,                     # c_s
-                       160,                     # c_t
-                       :heavy_edge,             # c_rating_score
-                       true,                    # c_rating_use_communities 
-                       :no_penalty,             # c_rating_heavy_node_penalty
-                       :best_prefer_unmatched,  # c_rating_acceptance_criterion
-                       :fixed_vertex_allowed,   # c_fixed_vertex_acceptance_criterion
-                       :recursive,              # i_mode
-                       :multi,                  # i_technique
-                       :ml_style,               # i_c_type
-                       1.0,                     # i_c_s
-                       150,                     # i_c_t
-                       :heavy_edge,             # i_c_rating_score
-                       true,                    # i_c_rating_use_communities
-                       :no_penalty,             # i_c_rating_heavy_node_penalty
-                       :best_prefer_unmatched,  # i_c_rating_acceptance_criterion
-                       :fixed_vertex_allowed,   # i_c_fixed_vertex_acceptance_criterion
-                       :pool,                   # i_algo
-                       20,                      # i_runs
-                       :twoway_fm,              # i_r_type
-                       -1,                      # i_r_runs
-                       :simple,                 # i_r_fm_stop
-                       50,                      # i_r_fm_stop_i
-                       :kway_fm_flow,           # r_type
-                       -1,                      # r_runs
-                       :adaptive_opt,           # r_fm_stop
-                       1.0,                     # r_fm_stop_alpha
-                       350,                     # r_fm_stop_i
-                       :ibfs,                   # r_flow_algorithm
-                       16.0,                    # r_flow_alpha
-                       128,                     # r_flow_beta
-                       :hybrid,                 # r_flow_network
-                       :exponential,            # r_flow_execution_policy
-                       true,                    # r_flow_use_most_balanced_minimum_cut
-                       true,                    # r_flow_use_adaptive_alpha_stopping_rule
-                       true,                    # r_flow_ignore_small_hyperedge_cut
-                       true                     # r_flow_use_improvement_history
-                       )
+ContextParameters() =
+    ContextParameters(1000,                    # cmaxnet
+                      0,                       # vcycles
+                      true,                    # use_sparsifier
+                      28,                      # p_sparsifier_min_median_he_size
+                      1200,                    # p_sparsifier_max_hyperedge_size
+                      10,                      # p_sparsifier_max_cluster_size
+                      2,                       # p_sparsifier_min_cluster_size
+                      5,                       # p_sparsifier_num_hash_func
+                      100,                     # p_sparsifier_combined_num_hash_func
+                      true,                    # p_detect_communities
+                      false,                   # p_reuse_communities
+                      100,                     # p_max_louvain_pass_iterations
+                      0.001,                   # p_min_eps_improvement
+                      :hybrid,                 # p_louvain_edge_weight
+                      :ml_style,               # c_type
+                      1.0,                     # c_s
+                      160,                     # c_t
+                      :heavy_edge,             # c_rating_score
+                      true,                    # c_rating_use_communities 
+                      :no_penalty,             # c_rating_heavy_node_penalty
+                      :best_prefer_unmatched,  # c_rating_acceptance_criterion
+                      :fixed_vertex_allowed,   # c_fixed_vertex_acceptance_criterion
+                      :recursive,              # i_mode
+                      :multi,                  # i_technique
+                      :ml_style,               # i_c_type
+                      1.0,                     # i_c_s
+                      150,                     # i_c_t
+                      :heavy_edge,             # i_c_rating_score
+                      true,                    # i_c_rating_use_communities
+                      :no_penalty,             # i_c_rating_heavy_node_penalty
+                      :best_prefer_unmatched,  # i_c_rating_acceptance_criterion
+                      :fixed_vertex_allowed,   # i_c_fixed_vertex_acceptance_criterion
+                      :pool,                   # i_algo
+                      20,                      # i_runs
+                      :twoway_fm,              # i_r_type
+                      -1,                      # i_r_runs
+                      :simple,                 # i_r_fm_stop
+                      50,                      # i_r_fm_stop_i
+                      :kway_fm_flow,           # r_type
+                      -1,                      # r_runs
+                      :adaptive_opt,           # r_fm_stop
+                      1.0,                     # r_fm_stop_alpha
+                      350,                     # r_fm_stop_i
+                      :ibfs,                   # r_flow_algorithm
+                      16.0,                    # r_flow_alpha
+                      128,                     # r_flow_beta
+                      :hybrid,                 # r_flow_network
+                      :exponential,            # r_flow_execution_policy
+                      true,                    # r_flow_use_most_balanced_minimum_cut
+                      true,                    # r_flow_use_adaptive_alpha_stopping_rule
+                      true,                    # r_flow_ignore_small_hyperedge_cut
+                      true                     # r_flow_use_improvement_history
+                      )
 
-
-function set_additional_parameters(context_ref::Ref{kahypar_context_t}, params::context_parameters)
+function set_additional_parameters(context_ref::Ref{kahypar_context_t}, params::ContextParameters)
     kahypar_set_context_partition_hyperedge_size_threshold(context_ref, params.cmaxnet)
     kahypar_set_context_partition_global_search_iterations(context_ref, params.vcycles)
     kahypar_set_context_preprocessing_enable_min_hash_sparsifier(context_ref, params.use_sparsifier)
@@ -304,7 +307,7 @@ function set_additional_parameters(context_ref::Ref{kahypar_context_t}, params::
     kahypar_set_context_preprocessing_min_hash_sparsifier_max_hyperedge_size(context_ref, params.p_sparsifier_max_hyperedge_size)
     kahypar_set_context_preprocessing_min_hash_sparsifier_max_cluster_size(context_ref, params.p_sparsifier_max_cluster_size)
     kahypar_set_context_preprocessing_min_hash_sparsifier_min_cluster_size(context_ref, params.p_sparsifier_min_cluster_size)
-    kahypar_set_context_preprocessing_min_hash_sparsifier_num_hash_functions(context_ref, p_sparsifier_num_hash_func)
+    kahypar_set_context_preprocessing_min_hash_sparsifier_num_hash_functions(context_ref, params.p_sparsifier_num_hash_func)
 
     kahypar_set_context_preprocessing_enable_community_detection(context_ref, params.p_detect_communities)
     kahypar_set_context_preprocessing_community_detection_reuse_communities(context_ref, params.p_reuse_communities)
@@ -324,7 +327,7 @@ function set_additional_parameters(context_ref::Ref{kahypar_context_t}, params::
 
     kahypar_set_context_initial_partitioning_mode(context_ref, String(params.i_mode))
     kahypar_set_context_initial_partitioning_technique(context_ref, String(params.i_technique))
-    kahypar_set_context_initial_partitioning_coarsening_algorithm(context_ref, String(i_c_type))
+    kahypar_set_context_initial_partitioning_coarsening_algorithm(context_ref, String(params.i_c_type))
     kahypar_set_context_initial_partitioning_coarsening_max_allowed_weight_multiplier(context_ref, params.i_c_s)
     kahypar_set_context_initial_partitioning_coarsening_contraction_limit_multiplier(context_ref, params.i_c_t)
 
@@ -355,8 +358,8 @@ function set_additional_parameters(context_ref::Ref{kahypar_context_t}, params::
     kahypar_set_context_local_search_execution_policy(context_ref, String(params.r_flow_execution_policy))
     kahypar_set_context_local_search_flow_use_most_balanced_minimum_cut(context_ref, params.r_flow_use_most_balanced_minimum_cut)
     kahypar_set_context_local_search_flow_use_adaptive_alpha_stopping_rule(context_ref, params.r_flow_use_adaptive_alpha_stopping_rule)
-    kahypar_set_context_local_search_flow_ignore_small_hyperedge_cut(context_ref, r_flow_ignore_small_hyperedge_cut)
-    kahypar_set_context_local_search_flow_use_improvement_history(context_ref, r_flow_use_improvement_history)
+    kahypar_set_context_local_search_flow_ignore_small_hyperedge_cut(context_ref, params.r_flow_ignore_small_hyperedge_cut)
+    kahypar_set_context_local_search_flow_use_improvement_history(context_ref, params.r_flow_use_improvement_history)
 end
 
 """
@@ -380,20 +383,21 @@ Returns partition::Vector{Int64}, which is the node assignments (each node is as
 # Initialization from https://github.com/SebastianSchlag/kahypar/blob/master/config/cut_kahypar_mf_jea19.ini
 function kahypar_partition(A::SparseMatrixCSC{Int64,Int64},
                            k::Int64,
-                           ϵ::Float64,
+                           ϵ::Float64;
                            penalty::Symbol=:cut,
                            seed::Int64=-1,
                            vertex_weights::Vector{Int64}=ones(Int64, size(A, 1)),
-                           hyperedge_weights::Vector{Int64}=ones(Int64, size(A, 2)),
-                           additional_parameters::context_parameters=context_paramaters()
+                           hyperedge_weights::Vector{Int64}=ones(Int64, size(A, 2))
                            )
     # Create the context
     context = kahypar_context_new()
     # TODO(arbenson): expose recursive bisectioning functionality
-    mode=:direct,
+    mode = :direct
     kahypar_set_context_partition_mode(context, String(mode))
     kahypar_set_context_partition_objective(context, String(penalty))
     kahypar_set_context_partition_seed(context, seed)
+
+    additional_parameters = ContextParameters()
     set_additional_parameters(context, additional_parameters)
 
     # Basic info
@@ -404,14 +408,17 @@ function kahypar_partition(A::SparseMatrixCSC{Int64,Int64},
     hyperedge_indices = Vector{Csize_t}([0])
     hyperedges = Vector{Cuint}()
     for j in 1:num_hyperedges
-        hyperedge = findall(A[:, j])
-        append!(hyperedges, hyperedge)
-        push!(edge_indices, length(hyperedge))
+        hyperedge = findnz(A[:, j])[1]
+        append!(hyperedges, hyperedge .- 1)
+        push!(hyperedge_indices, hyperedge_indices[end] + length(hyperedge))
     end
-
+    pop!(hyperedge_indices)
+    
     # Other input parameters
     objective = Cint(0)
     partition = Vector{Cuint}(undef, num_vertices)
+    vertex_weights = convert(Vector{Cint}, vertex_weights)
+    hyperedge_weights = convert(Vector{Cint}, hyperedge_weights)    
 
     ccall((:kahypar_partition, libkahypar),
           Cvoid,
@@ -427,9 +434,17 @@ function kahypar_partition(A::SparseMatrixCSC{Int64,Int64},
            Ref{kahypar_context_t},  # context
            Ref{Cuint}               # parition
            ),
-          num_vertices, num_hyperedges, ϵ, k, vertex_weights, hyperedge_weights,
-          hyperedge_indices, hyperedges, objective, context, partition)
+          Cuint(num_vertices),
+          Cuint(num_hyperedges),
+          ϵ,
+          Cuint(k),
+          vertex_weights,
+          hyperedge_weights,
+          hyperedge_indices,
+          hyperedges,
+          objective,
+          context,
+          partition)
 
-    
     return convert(Vector{Int64}, partition) .+ 1
 end
