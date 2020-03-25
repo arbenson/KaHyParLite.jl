@@ -243,7 +243,7 @@ mutable struct ContextParameters
     r_flow_use_improvement_history::Bool
 end
 
-# defaults from https://github.com/SebastianSchlag/kahypar/blob/master/config/cut_kahypar_mf_jea19.ini
+# Initialization from https://github.com/SebastianSchlag/kahypar/blob/master/config/cut_kahypar_mf_jea19.ini
 ContextParameters() =
     ContextParameters(1000,                    # cmaxnet
                       0,                       # vcycles
@@ -381,16 +381,15 @@ Input parameters:
 
 Returns partition::Vector{Int64}, which is the node assignments (each node is assigned to a part in 1, ..., k)
 """
-# Initialization from https://github.com/SebastianSchlag/kahypar/blob/master/config/cut_kahypar_mf_jea19.ini
-function kahypar_partition(A::SparseMatrixCSC{Int64,Int64},
-                           k::Int64,
-                           ϵ::Float64;
-                           penalty::Symbol=:cut,
-                           seed::Int64=-1,
-                           vertex_weights::Vector{Int64}=ones(Int64, size(A, 1)),
-                           hyperedge_weights::Vector{Int64}=ones(Int64, size(A, 2)),
-                           extra_params::ContextParameters=ContextParameters()
-                           )
+function hypergraph_partition(A::SparseMatrixCSC{Int64,Int64},
+                              k::Int64,
+                              ϵ::Float64;
+                              penalty::Symbol=:cut,
+                              seed::Int64=-1,
+                              vertex_weights::Vector{Int64}=ones(Int64, size(A, 1)),
+                              hyperedge_weights::Vector{Int64}=ones(Int64, size(A, 2)),
+                              extra_params::ContextParameters=ContextParameters()
+                              )
     # Set up the context
     context = kahypar_context_new()
     # TODO(arbenson): expose recursive bisectioning functionality
